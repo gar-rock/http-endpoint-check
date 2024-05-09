@@ -4,6 +4,8 @@ import json
 
 import math
 
+import www_authenticate
+
 
 class bcolors:
     HEADER = "\033[95m"
@@ -37,6 +39,44 @@ headers = {
 #     "Content-Length": "77",
 #     "Accept": "*/*",
 # }
+
+auth_map = {
+    "APIGW":{
+        "Source":"Amazon AWS",
+        "Name":"API Gateway",
+        "Description":"You need an API key, likely in header as x-api-key. See more info at https://aws.amazon.com/what-is/api-key/",
+    }
+}
+
+
+def check_auth_type(response):
+
+    #document various scenarios, start from the known auth attributes, look for headers and codes
+    #then parse everything else
+    print(response)
+
+    headers = response.headers
+
+    #print(response.headers)
+
+    if "x-amz-apigw-id" in headers and r.status_code == 403:
+        return auth_map["APIGW"]
+    if "WWW-Authenticate" in headers:
+        parsed_www_auth = www_authenticate.parse(headers['WWW-Authenticate'])
+        realm = ''
+        challenge = ''
+        if 'Basic' in parsed_www_auth:
+            realm = parsed_www_auth['Basic']['realm']
+            challenge = "Basic"
+        if 'Negotiate' in parsed_www_auth:
+            challenge = parsed_www_auth['Negotiate']
+        
+        # print()
+        # print(parsed_www_auth)
+        # print()
+
+        return {"Source":realm,"Name":f"{realm} Auth Endpoint","Description":f"The endpoint is asking for {challenge} Auth. See more info at https://datatracker.ietf.org/doc/html/draft-ietf-http-authentication-03#section-2"}
+   
 
 
 
@@ -79,10 +119,33 @@ for url in weburlURL:
                 f"{bcolors.WARNING}[{r.status_code}]{bcolors.ENDC} {bcolors.BOLD}{url}{bcolors.ENDC} {bcolors.WARNING}redirects to{bcolors.ENDC} {bcolors.BOLD}{redirect_location_short}{bcolors.ENDC}"
             )
         elif r.status_code == 401:
-            redirect_location = r.headers["location"]
-            redirect_location_short = redirect_location.split("?")[0]
+            auth_type = check_auth_type(r)
             print(
                 f"{bcolors.FAIL}[{r.status_code}]{bcolors.ENDC} {bcolors.BOLD}{url}{bcolors.ENDC} {bcolors.FAIL}Unauthorized{bcolors.ENDC} {bcolors.BOLD}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Source']}]{bcolors.ENDC}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Name']}]{bcolors.ENDC}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Description']}]{bcolors.ENDC}"
+            )
+
+        elif r.status_code == 403:
+            auth_type = check_auth_type(r)
+            print(
+                f"{bcolors.FAIL}[{r.status_code}]{bcolors.ENDC} {bcolors.BOLD}{url}{bcolors.ENDC} {bcolors.FAIL}Forbidden{bcolors.ENDC} {bcolors.BOLD}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Source']}]{bcolors.ENDC}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Name']}]{bcolors.ENDC}"
+            )
+            print(
+                f"  {bcolors.OKCYAN}[{auth_type['Description']}]{bcolors.ENDC}"
             )
         else:
             print(f"Status Code: {r.status_code}")
