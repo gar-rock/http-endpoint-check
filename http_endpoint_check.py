@@ -66,6 +66,12 @@ for url in weburlURL:
             print(
                 f"{bcolors.WARNING}[{r.status_code}]{bcolors.ENDC} {bcolors.BOLD}{url}{bcolors.ENDC} {bcolors.WARNING}redirects to{bcolors.ENDC} {bcolors.BOLD}{redirect_location_short}{bcolors.ENDC}"
             )
+        elif r.status_code == 401:
+            redirect_location = r.headers["location"]
+            redirect_location_short = redirect_location.split("?")[0]
+            print(
+                f"{bcolors.FAIL}[{r.status_code}]{bcolors.ENDC} {bcolors.BOLD}{url}{bcolors.ENDC} {bcolors.FAIL}Unauthorized{bcolors.ENDC} {bcolors.BOLD}"
+            )
         else:
             print(f"Status Code: {r.status_code}")
     except requests.exceptions.ConnectionError as errc:
