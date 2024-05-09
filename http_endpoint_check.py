@@ -31,12 +31,24 @@ def convert_size(size_bytes):
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
 }
+# headers = {
+#     "User-Agent": "PostmanRuntime/7.37.3",
+#     "Content-Type":"application/json",
+#     "Content-Length": "77",
+#     "Accept": "*/*",
+# }
+
 
 
 weburlURL = sys.argv[1:]
 for url in weburlURL:
     print()
     try:
+        """
+
+        ## GET ##
+        
+        """
         r = requests.get(url, verify=True, allow_redirects=False, headers=headers)
         if r.status_code == 200:
             output = r.content
