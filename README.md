@@ -1,4 +1,4 @@
-# http-endpoint-tester
+# http-endpoint-check
 
 
 ## Usage
@@ -15,5 +15,7 @@ To check an endpoint run the script, passing in the URL as an arguemnt
 
 ### next steps
 - [ ] enable other HTTP status codes
+- [ ] parse additional headers on auth 
+- [ ] generate a list of known www-authenticate realms
 - [ ] look at using playwright to automate these http checks and grab screenshots
         https://playwright.dev/python/docs/api/class-playwright
