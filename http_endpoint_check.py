@@ -12,9 +12,14 @@ import re
 
 parser=argparse.ArgumentParser(description="HTTP Endpoint Check")
 parser.add_argument('-r', action='store_true', help="return raw output from urls")
+parser.add_argument('-l', action='store_true', default=False, help="follow redirects")
+parser.add_argument('-m','--max-redirects', default='1', type=int, choices=range(1,10), help="max number redirects")
+
 parser.add_argument("urls", help="list of urls to check")
 
 raw_output = False
+follw_redirects = False
+max_redirects = 1
 
 
 class bcolors:
@@ -57,7 +62,7 @@ def check_auth_on_300(response):
 
     #document various scenarios, start from the known auth attributes, look for headers and codes
     #then parse everything else
-    #print(response)
+    print(response)
 
     headers = response.headers
     location = urllib.parse.unquote(headers["Location"])
@@ -70,21 +75,40 @@ def check_auth_on_300(response):
         #This is saml redirect HTTP binding
         # try to extract this info
         # Regular expressions to extract SAMLRequest, RelayState, and IDP
+
+        # For inline saml soo redirect
+        #print(location.lower())
         saml_request_pattern = r"SAMLRequest=([^&]+)"
         relay_state_pattern = r"RelayState=([^&]+)"
         idp_pattern = r"=([^&]+)?SAMLRequest"
 
-        # Extracting values using regular expressions
-        saml_request =  urllib.parse.unquote(re.search(saml_request_pattern, location).group(1))
-        relay_state =  urllib.parse.unquote(re.search(relay_state_pattern, location).group(1))
-        idp =  urllib.parse.unquote(re.search(idp_pattern, location).group(1))
-
+        # Extracting values using regular expressions for saml request
+        try:
+            saml_request =  urllib.parse.unquote(re.search(saml_request_pattern, location).group(1))
+            relay_state =  urllib.parse.unquote(re.search(relay_state_pattern, location).group(1))
+            idp =  urllib.parse.unquote(re.search(idp_pattern, location).group(1))
+        except:
+            saml_request =  "none"
+            relay_state =  "none"
+            idp = "none"
         if raw_output:
             print("SAMLRequest:", saml_request)
             print("RelayState:", relay_state)
             print("IDP:", idp)
 
-        return f"SAML Auth","SAML SSO",f"HTTP SAML Binding found. Identity Provider is {idp}"
+        # for ping the location for idp intiated has this in the url
+        ping_intiated_kws = ["startsso.ping"]
+        # and for sp initiated it's this
+        sp_initiated_kws = ["/idp/sso.saml2"]
+        if any(ext in location.lower() for ext in ping_intiated_kws):
+            idp = "pingidentity"
+            return f"SAML Auth","SAML SSO",f"Identity Provider initiated {idp}"
+        elif any(ext in location.lower() for ext in sp_initiated_kws):
+            return f"SAML Auth","SAML SSO",f"HTTP SAML Binding found, Service Provider initiated. IdP is {idp}"
+        else:
+            idp = "unknown"
+            return f"SAML Auth","SAML SSO",f"Identity Provider {idp}"
+
 
 
 
@@ -128,13 +152,16 @@ def check_auth_type_on_400(response):
 def main(urls):
 
     for url in urls:
-        print()
+        print(url)
         try:
             """
 
             ## GET ##
             
             """
+            # make this recursive up until the max amount of redirects
+            # follw_redirects will be the boolean to check, otherwise don't do while
+            # maybe make a funciton with a yield? not sure...
             r = requests.get(url, verify=True, allow_redirects=False, headers=headers)
             if r.status_code == 200:
                 output = r.content
@@ -228,6 +255,7 @@ if __name__ == "__main__":
     args=parser.parse_args()
 
     raw_output = args.r
+    raw_output = args.l
     urls = (args.urls).split(",")
 
     main(urls)

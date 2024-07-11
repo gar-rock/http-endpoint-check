@@ -12,6 +12,12 @@ To check an endpoint run the script, passing in the URL as an arguemnt
 
 `python3 http_endpoint_check.py https://docs.github.com/`
 
+For multiple http endpoints use comma separated 
+`python3 http_endpoint_check.py "https://docs.github.com,https://postmeld.com`
+
+## Additional modifiers
+To allow following of redirects add the -L or --location flag
+
 
 ### next steps
 - [ ] enable other HTTP status codes
